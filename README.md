@@ -6,7 +6,7 @@ Security is directly influenced by the version of the used software and its conf
 
 This script is supported only on **Debian/Fedora** base distributions, take that in mind that after understanding its logic, you will be able to change the script for your own needs.
 
-## 1 - Initial Preperation
+## 1 - Initial Preperation and Installation
 Before changing anything in the system, it is mandatory to gather the current state of the system, different related information that will be used by the script when taking spesific actions, for example saving the current SSH keys.
 
 ### 1.1 - Distribution and Packet Manager
@@ -24,6 +24,7 @@ Installing software from source, compiling it, and building requries additional 
 - "GCC": A C compiler used by "Make" to compile .c files into binaries (Version C89 and above are requried)
 - "Make": A builder package that compiles the source files, creates the directories and all the dependencies, uses the 'MakeFile' after running the configure.ac file.
 - "wget": non-interactive file downloader, will be used to download the source from the OpenSSH website
+- "tar": archiving/extrackting tool, will be used for the tarball
 
 If one or more of the packages are missing, the script will install them with the previouslt found packaet manager.
 
@@ -49,5 +50,38 @@ Below is a table with all the libraries that OpenSSH can depend on, different li
 |PRNGD/EGD| --- |Depends|If /dev/random does not exist (Legacy)|
 |BSM| --- |Depends|Auditing for Solaris/FreeBSD/MacOS (Out of the scope)|
 
-At this point the script will scan for currently installed libraries and its versions with `dpkg/dnf` (depending on the OS distribution), then asking the user which libraries to install. according to the table, the script will prompt the user about every library that is marked as low and above. PRNGD/EGD requries additional testing of `/dev/random` if exist then skip, otherwise install without asking the user but log the decision.
+At this point the script will scan for currently installed libraries and its versions with `dpkg/dnf` (depending on the OS distribution), then asking the user which libraries to install. according to the table, the script will prompt the user about every library that is marked as low and above.
 
+PRNGD/EGD requries additional testing of `/dev/random` if exist then skip, otherwise install without asking the user but log the decision.
+
+## 1.3 - Check Current SSH
+At this step the script will scan the system for currently installed SSH, if there is then the script will ask the user if the current version should be completley wiped out and if the current SSH keys should be migrated to the next version, this includes the following things:
+
+- Ask the user if migrating SSH keys is required
+- Execute "sudo apt remove ssh"
+- Remove sshd user/group from passwd/shadow/group files
+- Remove `/etc/ssh` and everything inside (If the user chose to migrate SSH keys, copy them to /tmp)
+- Remove all the binaries related to SSH in `/bin` and `/sbin`
+- Remove the services in `/lib/systemd/system` (don't remove them completely, instead save them with .bak file extension)
+
+### 1.4 - OpenSSH tarball Installation
+OpenSSH tarball installation step is short and easy to understand, the latest version at the time this documentation has been written is 10.0p2 and it's going to be the default, the user will be prompted for a newer version if there is and will have to enter a mirror for the tarball and the checksum provided by OpenSSH or leave empty to continue with the default.
+
+The varriables are:
+
+- "TARBALL": contains a string that represents the downlaod link
+- "TARBALL_CHECKSUM": A signature for the current tarball
+
+After downloading the tarrball, the script will compare the signatures, if match it will continue and log it, otherwise stop the script and echo for mitigation attack risk.
+
+### 1.5 - Building From Source
+After the script has downloaded the tarrball, it will extract it with the help of 'tar -xvf' and start the configuration process considering the options that were chosen by the user. for example if the user chose to update the OpenSSL version, it is necessary to execute configure with '--with-ssl-dir=PATH' providing the path to the OpenSSL installation.
+
+After a proper configuration, execute 'make' to compile the source file guided by the configuration, and then 'sudo make install' to finish the installation.
+
+At this step we should have a working OpenSSH version 10.0p2, the only thing is left is to register it to 'systemd' by creating the right files.
+
+### 1.6 - Tests
+Before stepping to next major section, the script have to ensure that the installation was successful, that the configuration path was registered, that systemd recognizes the newer version of SSH.
+
+## 2 - Configurations

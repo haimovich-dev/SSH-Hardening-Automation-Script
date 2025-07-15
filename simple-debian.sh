@@ -1,8 +1,8 @@
 #!/bin/bash
 
-SUCCESS="\033[0;32m[V]\033[0m"
-FAILURE="\033[0;31m[X]\033[0m"
-LOADING="\033[0;34m[O]\033[0m"
+SUCCESS="\033[0;32m[+]\033[0m"
+FAILURE="\033[0;31m[-]\033[0m"
+LOADING="\033[0;34m[ ]\033[0m"
 
 ## 1.2 - required packages
 
@@ -53,6 +53,9 @@ if ! sudo tar -xvf /opt/openssl-3.5.1.tar.gz -C /opt > /dev/null 2>&1; then
     exit 1
 else
     echo -e "$SUCCESS Extraction succeded"
+
+    sudo rm -r /opt/openssl-3.5.1.tar.gz
+    echo -e "$SUCCESS OpenSSL tarball successfully removed"
 fi
 
 # configuring and building
@@ -64,13 +67,11 @@ else
     echo -e "$SUCCESS Configuration succeded"
     echo -e "$LOADING Building Configurations . . ."
 
-    date
-    if ! (cd "/opt/openssl-3.5.1" && sudo make -j"$(nproc)" > /dev/null 2>&1); then
+    if ! sudo make -C "/opt/openssl-3.5.1" -j"$(nproc)" > /dev/null 2>&1; then
         echo -e "$FAILURE Build Failed"
     else
-        date
         echo -e "$SUCCESS Build succeded"
-        if ! (cd "/opt/openssl-3.5.1" && sudo make install > /dev/null 2>&1); then
+        if ! sudo make -C "/opt/openssl-3.5.1" install > /dev/null 2>&1; then
             echo -e "$FAILURE Installation Failed"
         else
             echo -e "$SUCCESS OpenSSL 3.5.1 was installed successfully"
@@ -80,8 +81,13 @@ fi
 
 # 1.4 Completley remove current SSH
 
-sudo apt purge -y openssh-server openssh-client ssh-import-id openssh-sftp-server libssh4
-sudo truncate /home/*/.ssh/authorized_keys --size 0
+ssh_packages=($(apt list --installed 2>/dev/null | grep ssh | cut -d/ -f1))
+
+for pkg in "${ssh_packages[@]}"; do
+    echo -e "$LOADING Removing $pkg"
+    sudo apt purge -y $pkg
+    echo -e "$SUCCESS $pkg Has been successfully removed"
+done
 
 # 1.5 OpenSSH Installation
 
@@ -107,11 +113,36 @@ fi
 # extraction
 
 echo -e "$LOADING Extracting OpenSSH files . . . "
-if ! sudo tar -xvf /opt/openssh-10.0p2.tar.gz -C /opt > /dev/null 2>&1; then
+
+sudo mkdir /opt/openssh-10.0p2
+
+if ! sudo tar -xvf /opt/openssh-10.0p2.tar.gz -C /opt/openssh-10.0p2 --strip-components=1 > /dev/null 2>&1; then
     echo -e "$FAILURE Extraction Failed"
     exit 1
 else
     echo -e "$SUCCESS Extraction succeded"
+    sudo rm -r /opt/openssh-10.0p2.tar.gz
+    echo -e "$SUCCESS OpenSSH tarball successfully removed"
 fi
 
+# configuring and building
 
+echo -e "$LOADING Building OpenSSH 10.0 patch 2 . . . "
+if ! (cd "/opt/openssh-10.0p1" && \ 
+        sudo "./configure" -fPIC --prefix="/opt/openssl" --openssldir="/opt/openssl" no-shared > /dev/null 2>&1); then
+    echo -e "$FAILURE Configuration Failed"
+else
+    echo -e "$SUCCESS Configuration succeded"
+    echo -e "$LOADING Building Configurations . . ."
+
+    if ! sudo make -C "/opt/openssh-10.0p1" -j"$(nproc)" > /dev/null 2>&1; then
+        echo -e "$FAILURE Build Failed"
+    else
+        echo -e "$SUCCESS Build succeded"
+        if sudo make -C "/opt/openssh-10.0p1" install > /dev/null 2>&1; then
+            echo -e "$FAILURE Installation Failed"
+        else
+            echo -e "$SUCCESS OpenSSH 10.0p2 was installed successfully"
+        fi
+    fi
+fi

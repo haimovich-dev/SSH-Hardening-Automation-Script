@@ -81,11 +81,11 @@ fi
 
 # 1.4 Completley remove current SSH
 
-ssh_packages=($(apt list --installed 2>/dev/null | grep ssh | cut -d/ -f1))
+ssh_packages=($(apt list --installed > /dev/null | grep ssh | cut -d/ -f1))
 
 for pkg in "${ssh_packages[@]}"; do
     echo -e "$LOADING Removing $pkg"
-    sudo apt purge -y $pkg
+    sudo apt purge -y $pkg > /dev/null 2>&1
     echo -e "$SUCCESS $pkg Has been successfully removed"
 done
 sudo rm -r /etc/ssh

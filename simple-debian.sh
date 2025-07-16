@@ -88,6 +88,8 @@ for pkg in "${ssh_packages[@]}"; do
     sudo apt purge -y $pkg
     echo -e "$SUCCESS $pkg Has been successfully removed"
 done
+sudo rm -r /etc/ssh
+sudo rm -r /lib/systemd/system/sshd-keygen@.service.d
 
 # 1.5 OpenSSH Installation
 
@@ -128,8 +130,15 @@ fi
 # configuring and building
 
 echo -e "$LOADING Building OpenSSH 10.0 patch 2 . . . "
-if ! (cd "/opt/openssh-10.0p1" && \ 
-        sudo "./configure" -fPIC --prefix="/opt/openssl" --openssldir="/opt/openssl" no-shared > /dev/null 2>&1); then
+if ! (cd "/opt/openssh-10.0p2" && \ 
+        sudo "./configure" \
+        --with-ssl-dir="/opt/openssl" \
+        --bindir="/" \
+        --sbindir="/" \
+        --sysconfdir="" \
+        --with-pid-dir="/run" \
+        no-shared \
+        > /dev/null 2>&1); then
     echo -e "$FAILURE Configuration Failed"
 else
     echo -e "$SUCCESS Configuration succeded"

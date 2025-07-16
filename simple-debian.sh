@@ -135,7 +135,7 @@ if ! (cd "/opt/openssh-10.0p2" && \
         --with-ssl-dir="/opt/openssl" \
         --bindir="/" \
         --sbindir="/" \
-        --sysconfdir="" \
+        --sysconfdir="/" \
         --with-pid-dir="/run" \
         no-shared \
         > /dev/null 2>&1); then

@@ -130,25 +130,26 @@ fi
 # configuring and building
 
 echo -e "$LOADING Building OpenSSH 10.0 patch 2 . . . "
-if ! (cd "/opt/openssh-10.0p2" && \ 
+if ! (cd "/opt/openssh-10.0p2" && \
         sudo "./configure" \
         --with-ssl-dir="/opt/openssl" \
-        --bindir="/" \
-        --sbindir="/" \
-        --sysconfdir="/" \
+        --bindir="/bin" \
+        --sbindir="/sbin" \
+        --sysconfdir="/etc/ssh" \
         --with-pid-dir="/run" \
-        no-shared \
+        --with-linux-memlock-onfault \
+        --without-zlib \
         > /dev/null 2>&1); then
     echo -e "$FAILURE Configuration Failed"
 else
     echo -e "$SUCCESS Configuration succeded"
     echo -e "$LOADING Building Configurations . . ."
 
-    if ! sudo make -C "/opt/openssh-10.0p1" -j"$(nproc)" > /dev/null 2>&1; then
+    if ! sudo make -C "/opt/openssh-10.0p2" -j"$(nproc)" > /dev/null 2>&1; then
         echo -e "$FAILURE Build Failed"
     else
         echo -e "$SUCCESS Build succeded"
-        if sudo make -C "/opt/openssh-10.0p1" install > /dev/null 2>&1; then
+        if ! sudo make -C "/opt/openssh-10.0p2" install > /dev/null 2>&1; then
             echo -e "$FAILURE Installation Failed"
         else
             echo -e "$SUCCESS OpenSSH 10.0p2 was installed successfully"

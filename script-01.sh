@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# 1.1 - variables
+## 1.1 - variables
 
 SUCCESS="\033[0;32m[+]\033[0m"
 FAILURE="\033[0;31m[-]\033[0m"
@@ -102,7 +102,7 @@ else
     fi
 fi
 
-# 1.4 Completley remove current SSH
+## 1.4 Completley remove current SSH
 
 for pkg in "${ssh_packages[@]}"; do
     echo -e "$LOADING Removing $pkg"
@@ -112,7 +112,7 @@ done
 sudo rm -r /etc/ssh  > /dev/null 2>&1
 sudo rm -r /lib/systemd/system/sshd-keygen@.service.d  > /dev/null 2>&1
 
-# 1.5 OpenSSH Installation
+## 1.5 OpenSSH Installation
 
 # downloading
 
@@ -178,3 +178,12 @@ else
     fi
 fi
 
+## 1.5 - Disabling ssh.socket 
+
+echo -e "$LOADING Disabling Systemd ssh.socket"
+sudo systemctl disable ssh.socket
+echo -e "$LOADING Stopping Systemd ssh.socket"
+sudo systemctl stop ssh.socket
+echo -e "$LOADING Restarting Systemd SSH service"
+sudo systemctl restart ssh
+echo -e "$SUCCESS Installation completed SSH 10.0 patch 2 was installed successfully"

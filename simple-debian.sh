@@ -8,12 +8,16 @@ LOADING="\033[0;34m[ ]\033[0m"
 
 required_packages=('gcc' 'make' 'wget' 'tar')
 
+ssh_packages=($(apt list --installed > /dev/null 2>&1 | grep ssh | cut -d/ -f1))
+
+# OpenSSL related variables
+
 openssl_tarrball='https://github.com/openssl/openssl/releases/download/openssl-3.5.1/openssl-3.5.1.tar.gz'
 openssl_checksum='529043b15cffa5f36077a4d0af83f3de399807181d607441d734196d889b641f'
 openssl_tarball_path='/opt/openssl-3.5.1.tar.gz'
 openssl_path='/opt/openssl-3.5.1'
 
-ssh_packages=($(apt list --installed > /dev/null 2>&1 | grep ssh | cut -d/ -f1))
+# OpenSSH related variables
 
 openssh_tarball='https://cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-10.0p2.tar.gz'
 openssh_checksum='AhoucJoO30JQsSVr1anlAEEakN3avqgw7VnO+Q652Fw='
@@ -59,27 +63,35 @@ fi
 # extraction
 
 echo -e "$LOADING Extracting OpenSSL files . . . "
-if ! sudo tar -xvf $openssl_tarball_path -C $openssl_path > /dev/null 2>&1; then
+
+sudo mkdir $openssl_path  > /dev/null 2>&1
+
+if ! sudo tar -xvf $openssl_tarball_path -C $openssl_path --strip-components=1 > /dev/null 2>&1; then
     echo -e "$FAILURE Extraction Failed"
     exit 1
 else
     echo -e "$SUCCESS Extraction succeded"
 
-    sudo rm -r $openssl_tarball_path
+    sudo rm -r $openssl_tarball_path  > /dev/null 2>&1
     echo -e "$SUCCESS OpenSSL tarball successfully removed"
 fi
 
 # configuring and building
 
 echo -e "$LOADING Building OpenSSL 3.5.1 . . . "
-if ! (cd $openssl_path && sudo "./Configure" -fPIC --prefix="/opt/openssl" --openssldir="/opt/openssl" no-shared > /dev/null 2>&1); then
+
+sudo mkdir /opt/openssl > /dev/null 2>&1
+
+if ! (cd $openssl_path && sudo "./Configure" -fPIC --prefix="/opt/openssl" --openssldir="/etc/ssl/openssl-3.5.1" no-shared > /dev/null 2>&1); then
     echo -e "$FAILURE Configuration Failed"
+    exit 1
 else
     echo -e "$SUCCESS Configuration succeded"
     echo -e "$LOADING Building Configurations . . ."
 
     if ! sudo make -C $openssl_path -j"$(nproc)" > /dev/null 2>&1; then
         echo -e "$FAILURE Build Failed"
+        exit 1
     else
         echo -e "$SUCCESS Build succeded"
         if ! sudo make -C $openssl_path install > /dev/null 2>&1; then
@@ -97,8 +109,8 @@ for pkg in "${ssh_packages[@]}"; do
     sudo apt purge -y $pkg > /dev/null 2>&1
     echo -e "$SUCCESS $pkg Has been successfully removed"
 done
-sudo rm -r /etc/ssh
-sudo rm -r /lib/systemd/system/sshd-keygen@.service.d
+sudo rm -r /etc/ssh  > /dev/null 2>&1
+sudo rm -r /lib/systemd/system/sshd-keygen@.service.d  > /dev/null 2>&1
 
 # 1.5 OpenSSH Installation
 
@@ -122,14 +134,14 @@ fi
 
 echo -e "$LOADING Extracting OpenSSH files . . . "
 
-sudo mkdir $openssh_path
+sudo mkdir $openssh_path  > /dev/null 2>&1
 
 if ! sudo tar -xvf $openssh_tarball_path -C $openssh_path --strip-components=1 > /dev/null 2>&1; then
     echo -e "$FAILURE Extraction Failed"
     exit 1
 else
     echo -e "$SUCCESS Extraction succeded"
-    sudo rm -r $openssh_tarball_path
+    sudo rm -r $openssh_tarball_path  > /dev/null 2>&1
     echo -e "$SUCCESS OpenSSH tarball successfully removed"
 fi
 
@@ -147,16 +159,19 @@ if ! (cd $openssh_path && \
         --without-zlib \
         > /dev/null 2>&1); then
     echo -e "$FAILURE Configuration Failed"
+    exit 1
 else
     echo -e "$SUCCESS Configuration succeded"
     echo -e "$LOADING Building Configurations . . ."
 
     if ! sudo make -C $openssh_path -j"$(nproc)" > /dev/null 2>&1; then
         echo -e "$FAILURE Build Failed"
+        exit 1
     else
         echo -e "$SUCCESS Build succeded"
         if ! sudo make -C $openssh_path install > /dev/null 2>&1; then
             echo -e "$FAILURE Installation Failed"
+            exit 1
         else
             echo -e "$SUCCESS OpenSSH 10.0p2 was installed successfully"
         fi

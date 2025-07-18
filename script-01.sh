@@ -10,6 +10,8 @@ required_packages=('gcc' 'make' 'wget' 'tar')
 
 ssh_packages=($(apt list --installed > /dev/null 2>&1 | grep ssh | cut -d/ -f1))
 
+ssh_keys_bkp="/tmp/ssh-keys-bkp"
+
 # OpenSSL related variables
 
 openssl_tarrball='https://github.com/openssl/openssl/releases/download/openssl-3.5.1/openssl-3.5.1.tar.gz'
@@ -102,7 +104,16 @@ else
     fi
 fi
 
-## 1.4 Completley remove current SSH
+## 1.4 Save current SSH keys
+
+sudo mkdir $ssh_keys_bkp
+
+for pub in /etc/ssh/*.pub; do
+    base="${pub%.pub}"
+    sudo cp "$base" "$base.pub" $ssh_keys_bkp
+done
+
+## 1.5 Completley remove current SSH
 
 for pkg in "${ssh_packages[@]}"; do
     echo -e "$LOADING Removing $pkg"
@@ -112,7 +123,7 @@ done
 sudo rm -r /etc/ssh  > /dev/null 2>&1
 sudo rm -r /lib/systemd/system/sshd-keygen@.service.d  > /dev/null 2>&1
 
-## 1.5 OpenSSH Installation
+## 1.6 OpenSSH Installation
 
 # downloading
 
@@ -178,12 +189,33 @@ else
     fi
 fi
 
-## 1.5 - Disabling ssh.socket 
+## 1.7 - migrate SSH keys to config path
+
+#removal
+
+for pub_key in /etc/ssh/*.pub; do
+    key="${pub_key%.pub}"
+    sudo rm "$pub_key"
+    sudo rm "$key"
+done
+
+# copying
+
+for pub_key in $ssh_keys_bkp/*.pub; do
+    key="${pub_key%.pub}"
+    sudo mv "$pub_key" "$key" "/etc/ssh" > /dev/null
+done
+
+sudo rm -r $ssh_keys_bkp
+
+## 1.8 - Final steps
 
 echo -e "$LOADING Disabling Systemd ssh.socket"
-sudo systemctl disable ssh.socket
+sudo systemctl disable ssh.socket > /dev/null 2>&1
 echo -e "$LOADING Stopping Systemd ssh.socket"
-sudo systemctl stop ssh.socket
+sudo systemctl stop ssh.socket > /dev/null 2>&1
+echo -e "$LOADING Enabling SSH service"
+sudo systemctl enable ssh > /dev/null 2>&1
 echo -e "$LOADING Restarting Systemd SSH service"
-sudo systemctl restart ssh
+sudo systemctl restart ssh > /dev/null 2>&1
 echo -e "$SUCCESS Installation completed SSH 10.0 patch 2 was installed successfully"

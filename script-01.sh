@@ -106,11 +106,14 @@ fi
 
 ## 1.4 Save current SSH keys
 
+echo -e "$LOADING Backing up current SSH keys"
+
 sudo mkdir $ssh_keys_bkp
 
-for pub in /etc/ssh/*.pub; do
-    base="${pub%.pub}"
-    sudo cp "$base" "$base.pub" $ssh_keys_bkp
+for pub_key in /etc/ssh/*.pub; do
+    key="${pub_key%.pub}"
+    sudo cp "$key" "$key.pub" $ssh_keys_bkp
+    echo -e "$SUCCESS $key Pair was saved to $ssh_keys_bkp"
 done
 
 ## 1.5 Completley remove current SSH

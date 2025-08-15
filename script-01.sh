@@ -104,7 +104,7 @@ else
     fi
 fi
 
-## 1.4 Save current SSH keys
+## 1.4 Save current SSH keys and config with .bak
 
 echo -e "$LOADING Backing up current SSH keys"
 
@@ -115,6 +115,8 @@ for pub_key in /etc/ssh/*.pub; do
     sudo cp "$key" "$key.pub" $ssh_keys_bkp
     echo -e "$SUCCESS $key Pair was saved to $ssh_keys_bkp"
 done
+
+sudo cp /etc/ssh/sshd_config $ssh_keys_bkp/sshd_config.bak
 
 ## 1.5 Completley remove current SSH
 
@@ -201,6 +203,7 @@ for pub_key in /etc/ssh/*.pub; do
     sudo rm "$pub_key"
     sudo rm "$key"
 done
+sudo rm /etc/ssh/sshd_config
 
 # copying
 
@@ -208,6 +211,8 @@ for pub_key in $ssh_keys_bkp/*.pub; do
     key="${pub_key%.pub}"
     sudo mv "$pub_key" "$key" "/etc/ssh" > /dev/null
 done
+
+sudo cp $ssh_keys_bkp/sshd_config.bak /etc/ssh
 
 sudo rm -r $ssh_keys_bkp
 

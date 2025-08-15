@@ -1,0 +1,32 @@
+# ========================================================================
+#                       ENCRYPTION SECTION
+# ========================================================================
+
+# Ciphers, are algorithms that define the way of data encryption after successfull authentication
+# Only modern algorithms are used
+
+Ciphers aes256-gcm@openssh.com,aes128-gcm@openssh.com,aes256-ctr,aes128-ctr
+
+# MACs, Message Authentication Codes provide data integrity and authenticity over the session, prevents data tampering
+# and packet injection attacks
+
+MACs hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com,hmac-sha2-512,hmac-sha2-256
+
+# Key Exchange Algoritms, a way of defining a shared key that will be used by the ciphers to encrypt the session between
+# 2 peers. a good algorithm prevents MITM, or guessing the session key.
+# Remove the file /etc/ssh/moduli because diffie-hellman algorithms are not used.
+
+KexAlgorithms mlkem768x25519-sha256,sntrup761x25519-sha512,sntrup761x25519-sha512@openssh.com
+
+# A list of supported algorithms used during the KEX init process to identify the server to the client by a public host
+# key and a kex signature that was made with the help of the private key
+# Remove the ecdsa host key, won't be used anyway with this configuration.
+
+HostKeyAlgorithms ssh-ed25519-cert-v01@openssh.com,ssh-ed25519,rsa-sha2-512-cert-v01@openssh.com,rsa-sha2-256-cert-v01@openssh.com,rsa-sha2-512,rsa-sha2-256
+
+# This conf defines the minimum length of the RSA key that SSH will offer. the default is 3072 which is weak for
+# modern standards, if possible avoid using RSA.
+
+RequiredRSASize 4096
+
+

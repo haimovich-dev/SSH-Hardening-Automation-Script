@@ -25,8 +25,34 @@ KexAlgorithms mlkem768x25519-sha256,sntrup761x25519-sha512,sntrup761x25519-sha51
 HostKeyAlgorithms ssh-ed25519-cert-v01@openssh.com,ssh-ed25519,rsa-sha2-512-cert-v01@openssh.com,rsa-sha2-256-cert-v01@openssh.com,rsa-sha2-512,rsa-sha2-256
 
 # This conf defines the minimum length of the RSA key that SSH will offer. the default is 3072 which is weak for
-# modern standards, if possible avoid using RSA.
+# modern standards, if possible avoid using RSA. The minimum recommended size for supported RSA keys are 4096 and higher
+# which will increase security but slower operations.
 
 RequiredRSASize 4096
 
+# A list of public/private key algorithms used for authenticating users, if a user will try to use ecdsa keys to authenticate
+# it will fail. only the defines algorithms are supported in this configuration.
 
+PubkeyAcceptedAlgorithms ssh-ed25519-cert-v01@openssh.com,rsa-sha2-512-cert-v01@openssh.com,rsa-sha2-256-cert-v01@openssh.com,ssh-ed25519,rsa-sha2-512,rsa-sha2-256
+
+# ========================================================================
+#                       AUTHENTICATION SECTION
+# ========================================================================
+
+# Disables the ability to use passwords for authentication which prevents brute force attacks, rainbow tables, and completley
+# removes an entire attack surface related to passwords.
+
+PasswordAuthentication no
+
+# In case password authentication is permitted then its recommended to explicitly disable empty password authentication
+# this type of authentication does no authenticate users
+
+PermitEmptyPasswords
+
+# Disables the ability to authenticate as the root user, recommended to use this user locally only and in emergancy scenarios
+
+PermitRootLogin no
+
+# Enables to authenticate users with private/public keys, recommended to use and avoid using passwords
+
+PubkeyAuthentication yes

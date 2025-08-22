@@ -47,7 +47,7 @@ PasswordAuthentication no
 # In case password authentication is permitted then its recommended to explicitly disable empty password authentication
 # this type of authentication does no authenticate users
 
-PermitEmptyPasswords
+PermitEmptyPasswords no
 
 # Disables the ability to authenticate as the root user, recommended to use this user locally only and in emergancy scenarios
 
@@ -56,3 +56,9 @@ PermitRootLogin no
 # Enables to authenticate users with private/public keys, recommended to use and avoid using passwords
 
 PubkeyAuthentication yes
+
+# This param gives you the ability to specify which authentication methods you want your system to supported
+
+AuthenticationMethods publickey
+
+

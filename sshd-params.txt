@@ -35,6 +35,10 @@ RequiredRSASize 4096
 
 PubkeyAcceptedAlgorithms ssh-ed25519-cert-v01@openssh.com,rsa-sha2-512-cert-v01@openssh.com,rsa-sha2-256-cert-v01@openssh.com,ssh-ed25519,rsa-sha2-512,rsa-sha2-256
 
+# A list of accepted algorithms that are used during host based authentication type
+
+HostbasedAcceptedAlgorithms ssh-ed25519-cert-v01@openssh.com,rsa-sha2-512-cert-v01@openssh.com,rsa-sha2-256-cert-v01@openssh.com,ssh-ed25519,rsa-sha2-512,rsa-sha2-256
+
 # ========================================================================
 #                       AUTHENTICATION SECTION
 # ========================================================================
@@ -61,4 +65,7 @@ PubkeyAuthentication yes
 
 AuthenticationMethods publickey
 
+# Specifies if host based authentication is allowed on the server, explicilty set to no
+
+HostbasedAuthentication no
 

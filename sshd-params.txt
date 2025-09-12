@@ -39,6 +39,14 @@ PubkeyAcceptedAlgorithms ssh-ed25519-cert-v01@openssh.com,rsa-sha2-512-cert-v01@
 
 HostbasedAcceptedAlgorithms ssh-ed25519-cert-v01@openssh.com,rsa-sha2-512-cert-v01@openssh.com,rsa-sha2-256-cert-v01@openssh.com,ssh-ed25519,rsa-sha2-512,rsa-sha2-256
 
+# Explicitly specified private host key, must have 600 permissions and the algorithm must be allowed in HostKeyAlgorithms
+# possible to set the host key to be a public key which will increase security only in case the private keys
+# are stored externally on HSM, in that case cryptographic operations related to private keys will be performed
+# by the ssh-agent.
+
+HostKey /etc/ssh/ssh_host_rsa_key
+HostKey /etc/ssh/ssh_host_ed25519_key
+
 # ========================================================================
 #                       AUTHENTICATION SECTION
 # ========================================================================
@@ -68,4 +76,28 @@ AuthenticationMethods publickey
 # Specifies if host based authentication is allowed on the server, explicilty set to no
 
 HostbasedAuthentication no
+
+# ========================================================================
+#                       X SECTION
+# ========================================================================
+
+# In case the X11 forwarding is enabled, this param states which address should be binded to the x11 server.
+# set to yes in order to bind it to the localhost address to block access from outside.
+
+X11UseLocalhost yes
+
+# This param specifies the binary that is used to authenticate X11 connections and provide the COOKIE
+# never set to 'none', in that case if the server is accidentally running X11 there will be no authentication 
+
+XAuthLocation /usr/X11R6/bin/xauth
+
+# Only relevant if X11Forwarding is enabled, sets the first avaliable display number
+
+X11DisplayOffset 10
+
+# Allows using SSH to forward X11 traffic, the X11 traffic is wrapped in SSH tunnel, disable this option explicitly 
+# to avoid unnecessary connections and traffic.
+
+X11Forwarding no
+
 

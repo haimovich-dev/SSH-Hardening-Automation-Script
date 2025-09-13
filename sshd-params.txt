@@ -95,9 +95,35 @@ XAuthLocation /usr/X11R6/bin/xauth
 
 X11DisplayOffset 10
 
+# ========================================================================
+#                       FORWARDING SECTION
+# ========================================================================
+
 # Allows using SSH to forward X11 traffic, the X11 traffic is wrapped in SSH tunnel, disable this option explicitly 
 # to avoid unnecessary connections and traffic.
 
 X11Forwarding no
+
+# Allows to forward ssh agent socket to use private keys remotely, if enabled allows to use the server as an
+# intermediate server without exposing private keys, usefull only if the server is ment to be used as an
+# intermediate server.
+
+AllowAgentForwarding no
+
+# Allows using the SSH Daemon as a local/remote/dynamic proxy server for TCP traffic, usefull only in case the 
+# SSH server is planned to be used as a proxy server. form security perspective recommended to completley 
+# disable the feature.
+
+AllowTcpForwarding no
+
+# Very simmilar to TCP forwarding, but refers to UNIX domain sockets represented as files. every socket file is locally
+# stored somewhere in the filesystem and belongs to some daemon which offer services. forwarding this type of sockets
+# allows users to interact with local sockets.
+
+AllowStreamLocalForwarding no
+
+# A single parameter that disable every forwarding parameter stated above, including ssh-agent/TCP/stream/x11.
+
+DisableForwarding yes
 
 

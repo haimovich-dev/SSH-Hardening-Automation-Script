@@ -47,6 +47,12 @@ HostbasedAcceptedAlgorithms ssh-ed25519-cert-v01@openssh.com,rsa-sha2-512-cert-v
 HostKey /etc/ssh/ssh_host_rsa_key
 HostKey /etc/ssh/ssh_host_ed25519_key
 
+# This parameter specifies the path to the file that contains DH groups used for KexAlgorithms from DH family
+# In this configuration the DH algorithms are completley disabled so there is no need to specify it, anyway
+# define it explicitly.
+
+ModuliFile /etc/ssh/moduli
+
 # ========================================================================
 #                       AUTHENTICATION SECTION
 # ========================================================================
@@ -125,5 +131,45 @@ AllowStreamLocalForwarding no
 # A single parameter that disable every forwarding parameter stated above, including ssh-agent/TCP/stream/x11.
 
 DisableForwarding yes
+
+# ========================================================================
+#                    GSSAPI + Kerberos SECTION
+# ========================================================================
+
+# Another form of providing SSH authentication, uses a seperate authentication method, for example Kerberos,
+# provides an SSO by using TGT cache in case kerberos is used. can also be used with other authentication
+# systems, mostly usable in domain environments, enable only if needed.
+
+GSSAPIAuthentication no
+
+# Relevant if GSSAPIAuthentication is set ot yes, on logout clears user credential data
+
+GSSAPICleanupCredentials yes
+
+# Checks for hostname when authenticating to a server, for exmpale if user authenticates to S1.domain.com
+# the tockets name must be S1.domain.com. if set to no then authentication can happen on another machine
+# set to yse in order to avoid interception, enable only if required.
+
+GSSAPIStrictAcceptorCheck yes
+
+# Enables Kerberos passwrod verification, when user authenticates to the SSH server, the SSH daemon would request
+# validation from the KDC to confirm the user password. works onlu if PasswordAuthentication is set to yes
+
+KerberosAuthentication no
+
+# Deprecated technology, if the SSH host has AFS and KerberosGetAFSToken set to yes, then gets access to the AFS
+# which is not used, set to no to shrink attack vector.
+
+KerberosGetAFSToken no
+
+# If Kerberos password verification by KDC fails, the check the password with another authentication programm, in
+# case Kerberos explicitly was configured to be used as user authentication system, then disable other authentication
+# methods.
+
+KerberosOrLocalPasswd no
+
+# If Kerberos is used for user authenticity then on logout destroy any cache that contains user credenntial in it.
+
+KerberosTicketCleanup yes
 
 

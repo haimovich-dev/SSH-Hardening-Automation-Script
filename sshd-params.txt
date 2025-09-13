@@ -53,6 +53,30 @@ HostKey /etc/ssh/ssh_host_ed25519_key
 
 ModuliFile /etc/ssh/moduli
 
+# When a connection is received, a fingerprint hash of the users public key is stored encrypted with the specified
+# algorithm, explicitly define sha256
+
+FingerprintHash sha256
+
+# If SSH operates with Certificates to authenticate users, then the list specify which algorithms are used to sign
+# the user key.
+
+CASignatureAlgorithms ssh-ed25519,rsa-sha2-512,rsa-sha2-256
+
+# If certificates are used by the environment, the HostCertificate specifies its own signed public key that is sent
+# to the clients during SSH init process to verify itself. the private key of the signed certificate must be specified
+# with HostKey. the default is not specifying a host certificate.
+
+# HostCertificate
+
+# If Certificates are used, then this parameter contains the public key of the CA that is used to verify user key
+# signature and authority. like authorized_keys file but contains a single signed public certifiacte that is used
+# to check given signed private keys.
+
+TrustedUserCAKeys none
+
+
+
 # ========================================================================
 #                       AUTHENTICATION SECTION
 # ========================================================================

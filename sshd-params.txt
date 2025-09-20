@@ -75,8 +75,6 @@ CASignatureAlgorithms ssh-ed25519,rsa-sha2-512,rsa-sha2-256
 
 TrustedUserCAKeys none
 
-
-
 # ========================================================================
 #                       AUTHENTICATION SECTION
 # ========================================================================
@@ -200,4 +198,26 @@ KerberosTicketCleanup yes
 #                    GENERAL SECTION           
 # ========================================================================
 
+# As part of the SSH protocol standards, the initial negotiation contains the protocol version and the software version in a 
+# form of <SSH-version-software comment> for example "SSH-2.0-OpenSSH_9.6p1 Ubuntu-3ubuntu13.14" is the default 
+# SSH protocol version exchange banner on Ubuntu distributions, unfortunately you can't change the comment section which reveals 
+# the local distribution on a default build because its embedded into sshd binary. This is a security flaw that allows the 
+# attacker to get the distro thats being used by the server. explicitly specify none to avoid any information to be revealed
 
+VersionAddendum none
+
+# When login prompt is sent, the banner is   nformative data. avoid information fingerprinting
+
+Banner none
+
+# Relevant only if the build included zlib which is responsible for traffic compression, in case OpenSSH suppots compression its recommended to 
+# set to 'no' because there are known attack vectors on compressed encrypted SSL traffic, in theory possible with SSH traffic.
+# use only in internal networks if needed.
+
+Compression no
+
+# Specifies if sshd should accept IPv4/IPv6/Both traffic, recommended to limit the parameter to the relevant traffic
+
+AddressFamily inet 
+
+#

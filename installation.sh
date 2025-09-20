@@ -9,7 +9,7 @@ LOADING="\033[0;34m[ ]\033[0m"
 required_packages=('gcc' 'make' 'wget' 'tar')
 
 ssh_packages=($(apt list --installed > /dev/null 2>&1 | grep ssh | cut -d/ -f1))
-
+ 
 ssh_keys_bkp="/tmp/ssh-keys-bkp"
 
 # OpenSSL related variables

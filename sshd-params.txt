@@ -75,6 +75,12 @@ CASignatureAlgorithms ssh-ed25519,rsa-sha2-512,rsa-sha2-256
 
 TrustedUserCAKeys none
 
+# This configuration allows to control the amount of data sent over a single key negotiation process. default equals to size and none is time
+# for example you can set 1G 1h and one of them is gonna be applied for each session, either after 1G of data transmitted, or every 1 hour.
+# avaliable sizes metrics are K, M, G.
+
+RekeyLimit default none
+
 # ========================================================================
 #                       AUTHENTICATION SECTION
 # ========================================================================
@@ -104,6 +110,12 @@ AuthenticationMethods publickey
 # Specifies if host based authentication is allowed on the server, explicilty set to no
 
 HostbasedAuthentication no
+
+# An option that allows a sort of 2FA by requiring users to physically authenticate them selves, avaliable only if the FIDO library is 
+# integrated into OpenSSH, the possible values are touch-requried/verify-required. relevant only for environments that use SK algorithms
+# for user authentication.
+
+PubkeyAuthOptions none
 
 # ========================================================================
 #                       X SECTION
@@ -220,4 +232,61 @@ Compression no
 
 AddressFamily inet 
 
+# Does not impact security at all, displays a text after the user logs into the system. In case an unauthorized user got access to the system
+# may reveal information if set in /etc/motd so be carefull what you put there. 
+
+PrintMotd no
+
+# Just prints the last time the logged user had logged previously, may be usefull to spot an unwanted access. 
+
+PrintLastLog yes
+
+# Sets the SSH_USER_AUTH variable in the environment of the shell session that contains the path to a file that contians auth methods
+# as stated previously as less information you reveal the less a possible attacker can know.
+
+ExposeAuthInfo no
+
+# Specifies the location of the .pid file which stores the sshd process number, this number can be used by other programms that interact with the sshd process
+# it does not impact the system from security perspective. 
+
+PidFile /var/run/sshd.pid
+
+# There is a standard in the community to change the default port number, thi tactic does noe impact security in any possible way, only requires additional small amount of time
+# to discover the custom port. but adds complications in the form of explicitly spesifying the custom port whenever its beign used. 
+
+Port 22
+
 #
+
+
+
+# ========================================================================
+#                    SESSIONS SECTION           
+# ========================================================================
+
+# This parameter defines the waiting time for user to input credentials, if no interaction is made by default after 120 seconds if inactivity
+# the connection is terminated, recommended to change to 30 seconds, reduces brute force windwo attack, relevant only when password authentication
+# method is beign used.
+
+LoginGraceTime 30
+
+# ========================================================================
+#                 SYSTEM SPESIFIC SECTION           
+# ========================================================================
+
+# Allows connection only if the user is part of the specified groups.
+
+#AllowGroups GROUP1 GROUP2
+
+# The Same as AllowGroups just for users. Specified users are allowed to connect.
+
+#AllowUsers USER1 USER2
+
+# Opposite of AllowGroups, every user is checked if part of the specified groups.
+
+#DenyGroups GROUP3 GROUP 4
+
+# Every specified user is now allowed to connect.
+
+#DenyUsers USER3 USER4
+

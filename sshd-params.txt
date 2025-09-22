@@ -256,9 +256,16 @@ PidFile /var/run/sshd.pid
 
 Port 22
 
-#
+# AcceptEnv allows to define a variable name that will be passed from the clietns side to the sessions environment on the server. do not set any environemnt variables.
+# use with caution, set variabels only to be used by machines in internal networks if needed, a user can pass in that variable what ever is wanted to be passed. 
+# do not use ACceptEnv in the config file
 
+#AcceptEnv
 
+# This option allows to set a key:value pair for each session. usefull in some cases but still should be cautiously reviewed before using that option because users will have
+# access to that key:value pair.
+
+#SetEnv
 
 # ========================================================================
 #                    SESSIONS SECTION           
@@ -290,3 +297,12 @@ LoginGraceTime 30
 
 #DenyUsers USER3 USER4
 
+# This option allows you to set the pathname which will be set as the root path for the logged user, mostly used for SFTP but can also set a 'jail'
+# for spesific users with the help of Match. the entire pathname should be with 755 mode. there are more requirements if applied to shell sessions.
+
+#ChrootDirectory none
+
+# A way of organizing you sshd configurations, usefull for seperating Match blocks from the general confgiuration. if you have a Match block its better to define it in a
+# seperate file and use the Include option with the full pathname. does not impact security.
+
+#Include

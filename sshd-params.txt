@@ -117,6 +117,11 @@ HostbasedAuthentication no
 
 PubkeyAuthOptions none
 
+# Another method of authentication which allows the server to prompt user for multiple inputs like 2FA, OTP, another password, etc. dependent on modules
+# that provide those features. set to yes in case there is a need for that.
+
+# KbdInteractiveAuthentication no
+
 # ========================================================================
 #                       X SECTION
 # ========================================================================
@@ -170,41 +175,43 @@ DisableForwarding yes
 #                    GSSAPI + Kerberos SECTION
 # ========================================================================
 
+# This entire section is irelevant, only if libkrb5 and libgssapi libraries were configured during installation.
+
 # Another form of providing SSH authentication, uses a seperate authentication method, for example Kerberos,
 # provides an SSO by using TGT cache in case kerberos is used. can also be used with other authentication
 # systems, mostly usable in domain environments, enable only if needed.
 
-GSSAPIAuthentication no
+#GSSAPIAuthentication no
 
 # Relevant if GSSAPIAuthentication is set ot yes, on logout clears user credential data
 
-GSSAPICleanupCredentials yes
+#GSSAPICleanupCredentials yes
 
 # Checks for hostname when authenticating to a server, for exmpale if user authenticates to S1.domain.com
 # the tockets name must be S1.domain.com. if set to no then authentication can happen on another machine
 # set to yse in order to avoid interception, enable only if required.
 
-GSSAPIStrictAcceptorCheck yes
+#GSSAPIStrictAcceptorCheck yes
 
 # Enables Kerberos passwrod verification, when user authenticates to the SSH server, the SSH daemon would request
 # validation from the KDC to confirm the user password. works onlu if PasswordAuthentication is set to yes
 
-KerberosAuthentication no
+#KerberosAuthentication no
 
 # Deprecated technology, if the SSH host has AFS and KerberosGetAFSToken set to yes, then gets access to the AFS
 # which is not used, set to no to shrink attack vector.
 
-KerberosGetAFSToken no
+#KerberosGetAFSToken no
 
 # If Kerberos password verification by KDC fails, the check the password with another authentication programm, in
 # case Kerberos explicitly was configured to be used as user authentication system, then disable other authentication
 # methods.
 
-KerberosOrLocalPasswd no
+#KerberosOrLocalPasswd no
 
 # If Kerberos is used for user authenticity then on logout destroy any cache that contains user credenntial in it.
 
-KerberosTicketCleanup yes
+#KerberosTicketCleanup yes
 
 # ========================================================================
 #                    GENERAL SECTION           
@@ -256,16 +263,9 @@ PidFile /var/run/sshd.pid
 
 Port 22
 
-# AcceptEnv allows to define a variable name that will be passed from the clietns side to the sessions environment on the server. do not set any environemnt variables.
-# use with caution, set variabels only to be used by machines in internal networks if needed, a user can pass in that variable what ever is wanted to be passed. 
-# do not use ACceptEnv in the config file
+# Part of the DSCP protocol, 
 
-#AcceptEnv
-
-# This option allows to set a key:value pair for each session. usefull in some cases but still should be cautiously reviewed before using that option because users will have
-# access to that key:value pair.
-
-#SetEnv
+IPQoS
 
 # ========================================================================
 #                    SESSIONS SECTION           
@@ -306,3 +306,45 @@ LoginGraceTime 30
 # seperate file and use the Include option with the full pathname. does not impact security.
 
 #Include
+
+# This option allows to execute a command right after the user logs in, a full pathname must be specified.
+
+#ForceCommand
+
+# A section of keywords that apply only if meets the condition specified in the Match, overrides the global section keywords. the avaliable conditions are Invalid-User which
+# is defined as a single key without a value and matches requests that their username is non existing, additional conditions are User, Group, Host, LocalAddress, 
+# LocalPort, Version, RDomain, and Address. it is a sort of a local whitelist that can change the global cofnigurations in specific conditions.
+# every condition must have a value (except Invalid-User) for example "Match User root" will apply the Match section configurations only for the root user.
+# the keywords inside the Match section are limited, check the official OpenBSD manual page for the list.
+# from a security perspective allows flexibility when used wisely.
+
+#Match
+
+# AcceptEnv allows to define a variable name that will be passed from the clietns side to the sessions environment on the server. do not set any environemnt variables.
+# use with caution, set variabels only to be used by machines in internal networks if needed, a user can pass in that variable what ever is wanted to be passed. 
+# do not use ACceptEnv in the config file
+
+#AcceptEnv
+
+# This option allows to set a key:value pair for each session. usefull in some cases but still should be cautiously reviewed before using that option because users will have
+# access to that key:value pair.
+
+#SetEnv
+
+# ========================================================================
+#                 IRELEVANT SECTION           
+# ========================================================================
+
+# Specifies a path to a library that will be used for FIDO authentications. the default is not configuring this option, there is a built in library
+#SecurityKeyProvider
+
+# Irelevant, used by developers for tests. points to sshd-auth by default.
+#SshdAuthPath
+
+# Irelevant, used by developers for tests. points to sshd-session binary by default.
+#SshdSessionPath
+
+# Sets the code that is being used when sshd is logged, avaliable: DAEMON, USER, AUTH, LOCAL0, LOCAL1, LOCAL2, LOCAL3, LOCAL4, LOCAL5, LOCAL6, LOCAL7. The default is AUTH.
+# does not impact security in any possible way.
+
+#SyslogFacility

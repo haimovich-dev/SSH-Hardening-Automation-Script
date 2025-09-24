@@ -263,9 +263,7 @@ PidFile /var/run/sshd.pid
 
 Port 22
 
-# Part of the DSCP protocol, 
 
-IPQoS
 
 # ========================================================================
 #                    SESSIONS SECTION           
@@ -331,6 +329,13 @@ LoginGraceTime 30
 
 #SetEnv
 
+# Part of the DSCP protocol, sets the priority of the SSH packet. can contain 2 values, the first for interactive sessions the second
+# for non-interactive sessions. does not impact security, can be usefull when the outgoing interface is facing a private WAN that supports
+# DSCP, also can be usefull when combined with PermitTunnel option.
+# the values are af11, af12, af13, af21, af22, af23, af31, af32, af33, af41, af42, af43, cs0, cs1, cs2, cs3, cs4, cs5, cs6, cs7, ef, le, or none.
+
+#IPQoS
+
 # ========================================================================
 #                 IRELEVANT SECTION           
 # ========================================================================
@@ -348,3 +353,14 @@ LoginGraceTime 30
 # does not impact security in any possible way.
 
 #SyslogFacility
+
+# Allows to log spesific functions/lines/files of the OpenSSH, does not impact security. can be usefull for developers or
+# wider monitoring abilities.
+
+#LogVerbose
+
+# Specifies the logging level, QUIET does not log anything when DEBUG4 logs everything. usefull for debugging or development.
+# from security perspective revelaing less information is better. the default is INFO. 
+
+#LogLevel QUIET, FATAL, ERROR, INFO, VERBOSE, DEBUG, DEBUG1, DEBUG2, DEBUG3, DEBUG4
+

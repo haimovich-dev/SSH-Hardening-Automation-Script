@@ -53,7 +53,7 @@ if ! sudo wget -P '/opt' $openssl_tarrball > /dev/null 2>&1; then
     echo -e "$FAILURE Download Failed"
     exit 1
 else
-    if [ "$(sha256sum $openssl_tarball_path | awk '{print $1}')" = "$openssl_checksum" ]; then
+    if [ "$(openssl dgst -sha256 "$openssl_tarball_path" | awk '{print $2}')" = "$openssl_checksum" ]; then
         echo -e "$SUCCESS Checksums Match"
     else
         echo -e "$FAILURE Checksums don't match! (possible mitigation attack)"
@@ -137,7 +137,7 @@ if ! sudo wget -P '/opt' $openssh_tarball > /dev/null 2>&1; then
     echo -e "$FAILURE Download Failed"
     exit 1
 else
-    if [ "$(sha256sum $openssh_tarball_path | awk '{print $1}' | xxd -r -p | base64)" = "$openssh_checksum" ]; then
+    if [ "$(openssl dgst -sha256 -binary "$openssh_tarball_path" | openssl base64)" = "$openssh_checksum" ]; then
         echo -e "$SUCCESS Checksums Match"
     else
         echo -e "$FAILURE Checksums don't match! (possible mitigation attack)"

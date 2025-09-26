@@ -2,11 +2,11 @@
 
 ## 1.1 - variables
 
-SUCCESS="\033[0;32m[+]\033[0m"
-FAILURE="\033[0;31m[-]\033[0m"
-LOADING="\033[0;34m[ ]\033[0m"
+SUCCESS="\033[0;32m[ + ]\033[0m"
+FAILURE="\033[0;31m[ - ]\033[0m"
+LOADING="\033[0;34m[ o ]\033[0m"
 
-required_packages=('gcc' 'make' 'wget' 'tar')
+required_packages=('gcc' 'make' 'wget' 'tar' 'sudo')
 
 ssh_packages=($(apt list --installed > /dev/null 2>&1 | grep ssh | cut -d/ -f1))
  
@@ -215,6 +215,22 @@ done
 sudo cp $ssh_keys_bkp/sshd_config.bak /etc/ssh
 
 sudo rm -r $ssh_keys_bkp
+
+## 1.8 - Checking sshd user existence
+
+if ! sudo cat /etc/passwd | grep sshd > /dev/null 2>&1; then
+    echo -e "$FAILURE User sshd does not exist"
+    echo -e "$LOADING Trying to create sshd user"
+
+    if ! sudo useradd sshd --gid 65534 -b /run --shell /usr/sbin/nologin > /dev/null 2>&1; then
+        echo -e "$FAILURE Wasn't able to create user sshd"
+        exit 1
+    else
+        echo -e "$SUCCESS User sshd was created successfully"
+    fi
+else
+    echo -e "$SUCCESS User sshd exists"
+fi
 
 ## 1.8 - Final steps
 

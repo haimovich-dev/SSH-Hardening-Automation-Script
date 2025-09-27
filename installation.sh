@@ -16,15 +16,17 @@ ssh_keys_bkp="/tmp/ssh-keys-bkp"
 
 openssl_tarrball='https://github.com/openssl/openssl/releases/download/openssl-3.5.1/openssl-3.5.1.tar.gz'
 openssl_checksum='529043b15cffa5f36077a4d0af83f3de399807181d607441d734196d889b641f'
-openssl_tarball_path='/opt/openssl-3.5.1.tar.gz'
-openssl_path='/opt/openssl-3.5.1'
+openssl_version="$(echo "$openssl_tarrball" | grep -oP 'openssl-\K[0-9]+\.[0-9]+\.[0-9]+' | head -n1)"
+openssl_tarball_path="/opt/openssl-${openssl_version}.tar.gz"
+openssl_path="/opt/openssl-${openssl_version}"
 
 # OpenSSH related variables
 
 openssh_tarball='https://cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-10.0p2.tar.gz'
 openssh_checksum='AhoucJoO30JQsSVr1anlAEEakN3avqgw7VnO+Q652Fw='
-openssh_tarball_path='/opt/openssh-10.0p2.tar.gz'
-openssh_path='/opt/openssh-10.0p2'
+openssh_version="$(echo "$openssh_tarball" | grep -oP 'openssh-\K[0-9]+\.[0-9]+p[0-9]+')"
+openssh_tarball_path="/opt/openssh-${openssh_version}.tar.gz"
+openssh_path="/opt/openssh-${openssh_version}"
 
 ## 1.2 - required packages
 
@@ -50,7 +52,6 @@ else
 fi
 
 for pkg in "${required_packages[@]}"; do
-    #declare ""
     if command -v "$pkg" >/dev/null 2>&1; then
         echo -e "$SUCCESS $pkg is Installed"
     else
@@ -69,7 +70,7 @@ done
 
 # downloading
 
-echo -e "$LOADING Downloading OpenSSL 3.5.1 . . . "
+echo -e "$LOADING Downloading OpenSSL ${openssl_version} . . . "
 if ! sudo wget -P '/opt' $openssl_tarrball > /dev/null 2>&1; then
     echo -e "$FAILURE Download Failed"
     exit 1
@@ -80,7 +81,7 @@ else
         echo -e "$FAILURE Checksums don't match! (possible mitigation attack)"
         exit 1
     fi
-    echo -e "$SUCCESS OpenSSL 3.5.1 Downloaded successfully"
+    echo -e "$SUCCESS OpenSSL ${openssl_version} Downloaded successfully"
 fi
 
 # extraction
@@ -101,11 +102,11 @@ fi
 
 # configuring and building
 
-echo -e "$LOADING Building OpenSSL 3.5.1 . . . "
+echo -e "$LOADING Building OpenSSL ${openssl_version} . . . "
 
 sudo mkdir /opt/openssl > /dev/null 2>&1
 
-if ! (cd $openssl_path && sudo "./Configure" -fPIC --prefix="/opt/openssl" --openssldir="/etc/ssl/openssl-3.5.1" no-shared > /dev/null 2>&1); then
+if ! (cd $openssl_path && sudo "./Configure" -fPIC --prefix="/opt/openssl" --openssldir="/etc/ssl/openssl-${openssl_version}" no-shared > /dev/null 2>&1); then
     echo -e "$FAILURE Configuration Failed"
     exit 1
 else
@@ -120,7 +121,7 @@ else
         if ! sudo make -C $openssl_path install > /dev/null 2>&1; then
             echo -e "$FAILURE Installation Failed"
         else
-            echo -e "$SUCCESS OpenSSL 3.5.1 was installed successfully"
+            echo -e "$SUCCESS OpenSSL ${openssl_version} was installed successfully"
         fi
     fi
 fi
@@ -153,7 +154,7 @@ sudo rm -r /lib/systemd/system/sshd-keygen@.service.d  > /dev/null 2>&1
 
 # downloading
 
-echo -e "$LOADING Downloading OpenSSH 10.0p2 . . . "
+echo -e "$LOADING Downloading OpenSSH ${openssh_version} . . . "
 if ! sudo wget -P '/opt' $openssh_tarball > /dev/null 2>&1; then
     echo -e "$FAILURE Download Failed"
     exit 1
@@ -164,7 +165,7 @@ else
         echo -e "$FAILURE Checksums don't match! (possible mitigation attack)"
         exit 1
     fi
-    echo -e "$SUCCESS OpenSSH 10.0p2 Downloaded successfully"
+    echo -e "$SUCCESS OpenSSH ${openssh_version} Downloaded successfully"
 fi
 
 # extraction
@@ -210,7 +211,7 @@ else
             echo -e "$FAILURE Installation Failed"
             exit 1
         else
-            echo -e "$SUCCESS OpenSSH 10.0p2 was installed successfully"
+            echo -e "$SUCCESS OpenSSH ${openssh_version} was installed successfully"
         fi
     fi
 fi

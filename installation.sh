@@ -6,7 +6,7 @@ SUCCESS="\033[0;32m[ + ]\033[0m"
 FAILURE="\033[0;31m[ - ]\033[0m"
 LOADING="\033[0;34m[ o ]\033[0m"
 
-required_packages=('gcc' 'make' 'wget' 'tar' 'sudo')
+required_packages=('gcc' 'make' 'wget' 'tar')
 
 ssh_packages=($(apt list --installed > /dev/null 2>&1 | grep ssh | cut -d/ -f1))
  
@@ -27,6 +27,27 @@ openssh_tarball_path='/opt/openssh-10.0p2.tar.gz'
 openssh_path='/opt/openssh-10.0p2'
 
 ## 1.2 - required packages
+
+current_user="$(whoami)"
+
+if [ "$current_user" != "root" ]; then
+    if ! command -v sudo >/dev/null 2>&1; then
+        echo -e "$FAILURE Current user is not root and sudo is not installed"
+        echo -e "\033[0;31mRUN THE SCRIPT AS A PRIVILEGED USER\033[0m"
+        exit 1
+    else
+        echo -e "$SUCCESS Sudo package is installed"
+    fi
+else
+    echo -e "$SUCCESS Current User is root"
+    echo -e "$LOADING Installing sudo package"
+    if ! sudo apt install -y sudo > /dev/null 2>&1; then
+        echo -e "$FAILURE Failed to install sudo"
+        exit 1
+    else
+        echo -e "$SUCCESS sudo installed successfully"
+    fi
+fi
 
 for pkg in "${required_packages[@]}"; do
     #declare ""

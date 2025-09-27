@@ -41,7 +41,7 @@ if [ "$current_user" != "root" ]; then
 else
     echo -e "$SUCCESS Current User is root"
     echo -e "$LOADING Installing sudo package"
-    if ! sudo apt install -y sudo > /dev/null 2>&1; then
+    if ! apt install -y sudo > /dev/null 2>&1; then
         echo -e "$FAILURE Failed to install sudo"
         exit 1
     else

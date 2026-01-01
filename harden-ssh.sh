@@ -3,8 +3,6 @@
 required_packages=('gcc' 'make' 'wget' 'tar')
 
 ssh_packages=($(apt list --installed > /dev/null 2>&1 | grep ssh | cut -d/ -f1))
- 
-ssh_keys_bkp="/tmp/ssh-keys-bkp"
 
 source "config.conf"
 
@@ -16,17 +14,18 @@ openssl_path="/opt/openssl-${openssl_version}"
 
 # OpenSSH related variables
 
-openssh_tarball='https://cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-10.0p2.tar.gz'
-openssh_checksum='AhoucJoO30JQsSVr1anlAEEakN3avqgw7VnO+Q652Fw='
-openssh_version="$(echo "$openssh_tarball" | grep -oP 'openssh-\K[0-9]+\.[0-9]+p[0-9]+')"
+openssh_version="$(echo "$OPENSSH_TARBALL" | grep -oP 'openssh-\K[0-9]+\.[0-9]+p[0-9]+')"
 openssh_tarball_path="/opt/openssh-${openssh_version}.tar.gz"
 openssh_path="/opt/openssh-${openssh_version}"
 
-LOG_FILE="/home/danil/scripts/SSH-Hardening-Automation-Script/log"
+function config_validation(){
+
+}
 
 # description: cleans up all the remained files from the system
 # return: nothing
 function cleanup(){
+    
     #openssl
     sudo rm -r $openssl_tarball_path &>/dev/null
     write_log 1 "$openssl_tarball_path successfully removed"
@@ -113,7 +112,7 @@ function packages(){
     done
 }
 
-# description: fetching, extraction, configuring and building OpenSSL 
+# description: OpenSSL fetching, extraction, configuring and building
 # return: exit code (nothing for success, non-zero for failure)
 function openssl_build(){
     write_log 3 "Downloading OpenSSL ${openssl_version}"
@@ -174,6 +173,14 @@ function openssl_build(){
             fi
         fi
     fi
+}
+
+# description: OpenSSH fetching, extraction, configuring and building, 
+#              backing up keys, removing previous installations, migrating keys
+#              sshd user creation.
+# return: exit code (nothing for success, non-zero for failure)
+function openssh_build(){
+
 }
 
 #privileges

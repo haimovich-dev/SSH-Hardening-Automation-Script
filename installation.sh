@@ -28,13 +28,14 @@ openssh_version="$(echo "$openssh_tarball" | grep -oP 'openssh-\K[0-9]+\.[0-9]+p
 openssh_tarball_path="/opt/openssh-${openssh_version}.tar.gz"
 openssh_path="/opt/openssh-${openssh_version}"
 
-## 1.2 - required packages
+## 1.2 - required packages + privilegs
 
 current_user="$(whoami)"
 
 if [ "$current_user" != "root" ]; then
-    if ! command -v sudo >/dev/null 2>&1; then
-        echo -e "$FAILURE Current user is not root and sudo is not installed"
+    echo -e "$FAILURE Current user is not root"
+    if ! command -v sudo > /dev/null 2>&1; then
+        echo -e "$FAILURE Sudo is not installed"
         echo -e "\033[0;31mRUN THE SCRIPT AS A PRIVILEGED USER\033[0m"
         exit 1
     else
@@ -42,12 +43,17 @@ if [ "$current_user" != "root" ]; then
     fi
 else
     echo -e "$SUCCESS Current User is root"
-    echo -e "$LOADING Installing sudo package"
-    if ! apt install -y sudo > /dev/null 2>&1; then
-        echo -e "$FAILURE Failed to install sudo"
-        exit 1
+    if ! command -v sudo > /dev/null 2>&1; then
+        echo -e "$FAILURE Sudo is not installed"
+        echo -e "$LOADING Installing sudo package"
+        if ! apt install -y sudo > /dev/null 2>&1; then
+            echo -e "$FAILURE Failed to install sudo"
+            exit 1
+        else
+            echo -e "$SUCCESS sudo installed successfully"
+        fi
     else
-        echo -e "$SUCCESS sudo installed successfully"
+        echo -e "$SUCCESS Sudo package is already installed"
     fi
 fi
 
@@ -120,6 +126,7 @@ else
         echo -e "$SUCCESS Build succeded"
         if ! sudo make -C $openssl_path install > /dev/null 2>&1; then
             echo -e "$FAILURE Installation Failed"
+            exit 1
         else
             echo -e "$SUCCESS OpenSSL ${openssl_version} was installed successfully"
         fi
@@ -254,7 +261,7 @@ else
     echo -e "$SUCCESS User sshd exists"
 fi
 
-## 1.8 - Final steps
+## 1.9 - systemd - service configuration
 
 echo -e "$LOADING Disabling Systemd ssh.socket"
 sudo systemctl disable ssh.socket > /dev/null 2>&1

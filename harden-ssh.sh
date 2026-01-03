@@ -1,10 +1,14 @@
 #!/bin/bash
 
+PARENT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+CONFIG_FILE="${PARENT_DIR}/config.conf"
+LOG_FILE="${PARENT_DIR}/script.log"
+
+source "${CONFIG_FILE}" &>/dev/null
+
 required_packages=('gcc' 'make' 'wget' 'tar')
 
 ssh_packages=($(apt list --installed > /dev/null 2>&1 | grep ssh | cut -d/ -f1))
-
-source "config.conf"
 
 # OpenSSL related variables
 
@@ -17,23 +21,6 @@ openssl_path="/opt/openssl-${openssl_version}"
 openssh_version="$(echo "$OPENSSH_TARBALL" | grep -oP 'openssh-\K[0-9]+\.[0-9]+p[0-9]+')"
 openssh_tarball_path="/opt/openssh-${openssh_version}.tar.gz"
 openssh_path="/opt/openssh-${openssh_version}"
-
-function config_validation(){
-
-}
-
-# description: cleans up all the remained files from the system
-# return: nothing
-function cleanup(){
-    
-    #openssl
-    sudo rm -r $openssl_tarball_path &>/dev/null
-    write_log 1 "$openssl_tarball_path successfully removed"
-    sudo rm -r '/opt/openssl' &>/dev/null
-    write_log 1 "/opt/openssl successfully removed"
-    sudo rm -r $openssl_path &>/dev/null
-    write_log 1 "$openssl_path successfully removed"
-}
 
 # description: saves logs
 # arguments:
@@ -59,6 +46,30 @@ function write_log(){
         ;;
     esac
     echo -e "${prefix} ${desc}"
+}
+
+# description: valifates config file existence and key/value pairs
+# return: exit code (nothing for success, non-zero for failure)
+function config_validation(){
+    if [[ ! -f "$CONFIG_FILE" ]]; then
+        write_log 2 "FATAL: Config file not found: $CONFIG_FILE"
+        exit 1
+    else
+        write_log 1 "Config file used: $CONFIG_FILE"
+    fi
+}
+
+# description: cleans up all the remained files from the system
+# return: nothing
+function cleanup(){
+    
+    #openssl
+    sudo rm -r $openssl_tarball_path &>/dev/null
+    write_log 1 "$openssl_tarball_path successfully removed"
+    sudo rm -r '/opt/openssl' &>/dev/null
+    write_log 1 "/opt/openssl successfully removed"
+    sudo rm -r $openssl_path &>/dev/null
+    write_log 1 "$openssl_path successfully removed"
 }
 
 # description: checks for privilleges
@@ -180,9 +191,10 @@ function openssl_build(){
 #              sshd user creation.
 # return: exit code (nothing for success, non-zero for failure)
 function openssh_build(){
-
+    exit 1
 }
 
+#config_validation
 #privileges
 #packages
 #openssl_build

@@ -18,7 +18,7 @@ openssl_path="/opt/openssl-${openssl_version}"
 
 # OpenSSH related variables
 
-openssh_version="$(echo "$OPENSSH_TARBALL" | grep -oP 'openssh-\K[0-9]+\.[0-9]+p[0-9]+')"
+openssh_version="$(echo "$OPENSSH_TARBALL_URL" | grep -oP 'openssh-\K[0-9]+\.[0-9]+p[0-9]+')"
 openssh_tarball_path="/opt/openssh-${openssh_version}.tar.gz"
 openssh_path="/opt/openssh-${openssh_version}"
 
@@ -48,6 +48,30 @@ function write_log(){
     echo -e "${prefix} ${desc}"
 }
 
+# description: extract given tarball file
+# arguments:
+#   $1 - full path to tarball
+#   $2 - destination path
+# return: exit code (nothing for success, non-zero for failure).
+function exract(){
+    local tarball="$1"
+    local dst_path="$2"
+
+    write_log 3 "Creating extraction path ${dst_path}"
+    if ! sudo mkdir $dst_path  &>/dev/null; then
+        write_log 2 "Failed to create ${dst_path}"
+        exit 1
+    fi
+    write_log 1 "${dst_path} created"
+
+    write_log 3 "Extracting OpenSSL files to ${dst_path}"
+    if ! sudo tar -xvf $tarball -C $dst_path --strip-components=1 &>/dev/null; then
+        write_log 2 "FAILED: ${tarball} extraction failed"
+        exit 1
+    fi
+    write_log 1 "${tarball} extracted to ${dst_path}"
+}
+
 # description: valifates config file existence and key/value pairs
 # return: exit code (nothing for success, non-zero for failure)
 function config_validation(){
@@ -66,8 +90,8 @@ function cleanup(){
     #openssl
     sudo rm -r $openssl_tarball_path &>/dev/null
     write_log 1 "$openssl_tarball_path successfully removed"
-    sudo rm -r '/opt/openssl' &>/dev/null
-    write_log 1 "/opt/openssl successfully removed"
+    sudo rm -r "${OPENSSL_INSTALLATION_DIR}" &>/dev/null
+    write_log 1 "${OPENSSL_INSTALLATION_DIR} successfully removed"
     sudo rm -r $openssl_path &>/dev/null
     write_log 1 "$openssl_path successfully removed"
 }
@@ -140,32 +164,18 @@ function openssl_build(){
         write_log 1 "OpenSSL ${openssl_version} Downloaded and verified successfully"
     fi
 
-    write_log 3 "Creating extraction path"
-    if ! sudo mkdir $openssl_path  &>/dev/null; then
-        write_log 2 "Failed to create ${$openssl_path}"
-        exit 1
-    else
-        write_log 1 "${$openssl_path} created"
-    fi
+    exract $openssl_tarball_path $openssl_path
 
-    write_log 3 "Extracting OpenSSL files"
-    if ! sudo tar -xvf $openssl_tarball_path -C $openssl_path --strip-components=1 &>/dev/null; then
-        write_log 2 "Extraction Failed"
+    write_log 3 "Creating ${OPENSSL_INSTALLATION_DIR}"
+    if ! sudo mkdir "${OPENSSL_INSTALLATION_DIR}" &>/dev/null; then
+        write_log 2 "Failed to create ${OPENSSL_INSTALLATION_DIR}"
         exit 1
     else
-        write_log 1 "Extraction succeded"
-    fi
-
-    write_log 3 "Creating /opt/openssl"
-    if ! sudo mkdir /opt/openssl &>/dev/null; then
-        write_log 2 "Failed to create /opt/openssl"
-        exit 1
-    else
-        write_log 1 "/opt/openssl created"
+        write_log 1 "${OPENSSL_INSTALLATION_DIR} created"
     fi
 
     write_log 3 "Building OpenSSL ${openssl_version}"
-    if ! (cd $openssl_path && sudo "./Configure" -fPIC --prefix="/opt/openssl" --openssldir="/etc/ssl/openssl-${openssl_version}" no-shared &>/dev/null); then
+    if ! (cd $openssl_path && sudo "./Configure" -fPIC --prefix="${OPENSSL_INSTALLATION_DIR}" --openssldir="/etc/ssl/openssl-${openssl_version}" no-shared &>/dev/null); then
         write_log 2 "Configuration Failed"
         exit 1
     else
@@ -194,7 +204,11 @@ function openssh_build(){
     exit 1
 }
 
-#config_validation
-#privileges
-#packages
-#openssl_build
+function main(){
+    config_validation
+    privileges
+    packages
+    openssl_build
+    exit 0
+}
+main

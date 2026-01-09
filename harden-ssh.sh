@@ -62,6 +62,7 @@ function exract(){
         write_log 2 "Failed to create ${dst_path}"
         exit 1
     fi
+
     write_log 1 "${dst_path} created"
 
     write_log 3 "Extracting OpenSSL files to ${dst_path}"
@@ -149,13 +150,13 @@ function packages(){
 
 # description: OpenSSL fetching, extraction, configuring and building
 # return: exit code (nothing for success, non-zero for failure)
-function openssl_build(){
+function openssl_deployment(){
     write_log 3 "Downloading OpenSSL ${openssl_version}"
     if ! sudo wget -P '/opt' $OPENSSL_TARBALL_URL &>/dev/null; then
         write_log 2 "Download Failed"
         exit 1
     else
-        if [ "$(sha256sum "$openssl_tarball_path" | awk '{print $1}')" = "$OPENSSL_CHECKSUM" ]; then
+        if [ "$(sudo openssl dgst --sha256 | awk '{print $2}')" = "$OPENSSL_CHECKSUM" ]; then
             write_log 1 "Checksums Match"
         else
             write_log 2 "Checksums don't match! (possible mitigation attack)"
@@ -176,11 +177,11 @@ function openssl_build(){
 
     write_log 3 "Building OpenSSL ${openssl_version}"
     if ! (cd $openssl_path && sudo "./Configure" -fPIC --prefix="${OPENSSL_INSTALLATION_DIR}" --openssldir="/etc/ssl/openssl-${openssl_version}" no-shared &>/dev/null); then
-        write_log 2 "Configuration Failed"
+        write_log 2 "OpenSSL ${openssl_version} configuration Failed"
         exit 1
     else
-        write_log 1 "Configuration succeded"
-        write_log 3 "Building Configurations"
+        write_log 1 "OpenSSL ${openssl_version} configuration succeded"
+        write_log 3 "Building OpenSSL ${openssl_version}"
         if ! sudo make -C $openssl_path -j"$(nproc)" &>/dev/null; then
             write_log 2 "Build Failed"
             exit 1
@@ -200,15 +201,78 @@ function openssl_build(){
 #              backing up keys, removing previous installations, migrating keys
 #              sshd user creation.
 # return: exit code (nothing for success, non-zero for failure)
-function openssh_build(){
-    exit 1
+function openssh_deployment(){
+    local current_version=$(ssh -V)
+    write_log 3 "Removing current SSH installation ${current_version}"
+    for pkg in "${ssh_packages[@]}"; do
+        write_log 3 "Removing ${pkg}"
+        sudo apt purge -y $pkg &>/dev/null
+        echo -e "$SUCCESS $pkg Has been successfully removed"
+    done
+    sudo rm -r /etc/ssh  > /dev/null 2>&1
+    sudo rm -r /lib/systemd/system/sshd-keygen@.service.d  > /dev/null 2>&1
+
+    write_log 3 "Downloading OpenSSH ${openssh_version} . . . "
+    if ! sudo wget -P '/opt' $OPENSSH_TARBALL_URL &>/dev/null; then
+        write_log 2 "Download Failed"
+        exit 1
+    else
+        if [ "$(openssl dgst -sha256 -binary "$openssh_tarball_path" | openssl base64)" = "$OPENSSH_CHECKSUM" ]; then
+            write_log 1 "Checksums Match"
+        else
+            write_log 2 "Checksums don't match! (possible mitigation attack)"
+            exit 1
+        fi
+        write_log 1 "OpenSSH ${openssh_version} Downloaded and verified successfully"
+    fi
+    
+    exract $openssh_tarball_path $openssh_path
+
+    write_log 3 "Creating ${OPENSSH_INSTALLATION_DIR}"
+    if ! sudo mkdir "${OPENSSH_INSTALLATION_DIR}" &>/dev/null; then
+        write_log 2 "Failed to create ${OPENSSH_INSTALLATION_DIR}"
+        exit 1
+    else
+        write_log 1 "${OPENSSH_INSTALLATION_DIR} created"
+    fi
+
+    write_log 3 "Building OpenSSH ${openssh_version}"
+    if ! (cd $openssh_path && \
+            sudo "./configure" \
+            --with-ssl-dir="${OPENSSH_INSTALLATION_DIR}" \
+            --bindir="/bin" \
+            --sbindir="/sbin" \
+            --sysconfdir="/etc/ssh" \
+            --with-pid-dir="/run" \
+            --with-linux-memlock-onfault \
+            --without-zlib \
+            &>/dev/null); then
+        write_log 2 "OpenSSH ${openssh_version} configuration Failed"
+        exit 1
+    else
+        write_log 1 "OpenSSH ${openssh_version} configuration succeded"
+        write_log 3 "Building OpenSSH ${openssh_version}"
+        if ! sudo make -C $openssh_path -j"$(nproc)" &>/dev/null; then
+            write_log 2 "Build Failed"
+            exit 1
+        else
+            write_log 1 "Build succeded"
+            if ! sudo make -C $openssh_path install &>/dev/null; then
+                write_log 2 "Installation Failed"
+                exit 1
+            else
+                write_log 1 "OpenSSH ${openssh_version} was installed successfully"
+            fi
+        fi
+    fi
 }
 
 function main(){
     config_validation
     privileges
     packages
-    openssl_build
+    openssl_deployment
+    openssh_deployment
     exit 0
 }
 main

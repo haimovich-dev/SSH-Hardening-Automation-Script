@@ -1,5 +1,8 @@
 #!/bin/bash
 
+VERBOSE=true
+BACKUP=false
+
 PARENT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG_FILE="${PARENT_DIR}/config.conf"
 LOG_FILE="${PARENT_DIR}/script.log"
@@ -8,7 +11,7 @@ source "${CONFIG_FILE}" &>/dev/null
 
 required_packages=('gcc' 'make' 'wget' 'tar')
 
-ssh_packages=($(apt list --installed > /dev/null 2>&1 | grep ssh | cut -d/ -f1))
+ssh_packages=($(apt list --installed 2>/dev/null | grep ssh | cut -d/ -f1))
 
 # OpenSSL related variables
 
@@ -32,20 +35,22 @@ function write_log(){
     local desc="$2"
     echo "$(date '+%Y-%m-%d %H:%M:%S') - ${desc}" >> "$LOG_FILE"
     
-    #verbosity
-    local prefix=""
-    case "$code" in
-        1)
-            prefix="\033[0;32m[ + ]\033[0m" # success
-        ;;
-        2)
-            prefix="\033[0;31m[ - ]\033[0m" # fail
-        ;;
-        3)
-            prefix="\033[0;34m[ o ]\033[0m" # wait
-        ;;
-    esac
-    echo -e "${prefix} ${desc}"
+    if [[ "$VERBOSE" == true ]]; then
+        #verbosity
+        local prefix=""
+        case "$code" in
+            1)
+                prefix="\033[0;32m[ + ]\033[0m" # success
+            ;;
+            2)
+                prefix="\033[0;31m[ - ]\033[0m" # fail
+            ;;
+            3)
+                prefix="\033[0;34m[ o ]\033[0m" # wait
+            ;;
+        esac
+        echo -e "${prefix} ${desc}"
+    fi
 }
 
 # description: extract given tarball file
@@ -53,7 +58,7 @@ function write_log(){
 #   $1 - full path to tarball
 #   $2 - destination path
 # return: exit code (nothing for success, non-zero for failure).
-function exract(){
+function extract(){
     local tarball="$1"
     local dst_path="$2"
 
@@ -95,6 +100,8 @@ function cleanup(){
     write_log 1 "${OPENSSL_INSTALLATION_DIR} successfully removed"
     sudo rm -r $openssl_path &>/dev/null
     write_log 1 "$openssl_path successfully removed"
+    sudo rm -r /etc/ssh &>/dev/null
+    sudo rm -r /lib/systemd/system/sshd-keygen@.service.d &>/dev/null
 }
 
 # description: checks for privilleges
@@ -156,7 +163,7 @@ function openssl_deployment(){
         write_log 2 "Download Failed"
         exit 1
     else
-        if [ "$(sudo openssl dgst --sha256 | awk '{print $2}')" = "$OPENSSL_CHECKSUM" ]; then
+        if [ "$(sudo openssl dgst --sha256 "$openssl_tarball_path" | awk '{print $2}')" = "$OPENSSL_CHECKSUM" ]; then
             write_log 1 "Checksums Match"
         else
             write_log 2 "Checksums don't match! (possible mitigation attack)"
@@ -165,7 +172,7 @@ function openssl_deployment(){
         write_log 1 "OpenSSL ${openssl_version} Downloaded and verified successfully"
     fi
 
-    exract $openssl_tarball_path $openssl_path
+    extract $openssl_tarball_path $openssl_path
 
     write_log 3 "Creating ${OPENSSL_INSTALLATION_DIR}"
     if ! sudo mkdir "${OPENSSL_INSTALLATION_DIR}" &>/dev/null; then
@@ -197,20 +204,60 @@ function openssl_deployment(){
     fi
 }
 
+# description: a function that is responsible for backing up current SSH keys and sshd_config file
+# return: exit code (nothing for success, non-zero for failure)
+function backup_env(){
+    write_log 3 "Backing up current SSH keys"
+
+    if ! sudo mkdir $OPENSSH_KEYS_BKP_PATH  &>/dev/null; then
+        write_log 2 "Failed to create ${dst_path}"
+        exit 1
+    fi
+
+    for pub_key in /etc/ssh/*.pub; do
+        local key="${pub_key%.pub}"
+        if ! sudo cp "$key" "$key.pub" $OPENSSH_KEYS_BKP_PATH; then
+            write_log 3 "$key and "$key.pub" could not be backedup"
+            exit 1
+        else
+            write_log 1 "$key and "$key.pub" was saved to $OPENSSH_KEYS_BKP_PATH"
+        fi
+    done
+
+    if ! sudo cp /etc/ssh/sshd_config $OPENSSH_KEYS_BKP_PATH/sshd_config.bak; then
+        write_log 3 "could not copy /etc/ssh/sshd_config into ${OPENSSH_KEYS_BKP_PATH}"
+        exit 1
+    else
+        write_log 1 "sshd_config was successfully copied into ${OPENSSH_KEYS_BKP_PATH}"
+    fi
+}
+
 # description: OpenSSH fetching, extraction, configuring and building, 
 #              backing up keys, removing previous installations, migrating keys
 #              sshd user creation.
 # return: exit code (nothing for success, non-zero for failure)
 function openssh_deployment(){
+    if [[ "$BACKUP" == true ]]; then
+        backup_env
+    fi
+
     local current_version=$(ssh -V)
-    write_log 3 "Removing current SSH installation ${current_version}"
+    write_log 3 "Removing current SSH dependencies ${current_version}"
     for pkg in "${ssh_packages[@]}"; do
         write_log 3 "Removing ${pkg}"
-        sudo apt purge -y $pkg &>/dev/null
-        echo -e "$SUCCESS $pkg Has been successfully removed"
+        if ! sudo apt purge -y $pkg &>/dev/null; then
+            write_log 1 "$pkg Has been successfully removed"
+        else
+            write_log 3 "Unable to remove ${pkg}"
+        fi
     done
-    sudo rm -r /etc/ssh  > /dev/null 2>&1
-    sudo rm -r /lib/systemd/system/sshd-keygen@.service.d  > /dev/null 2>&1
+
+    write_log 3 "Removing current SSH environment"
+    if ! sudo rm -rf /etc/ssh/*;then
+        write_log 2 "unable to remove current SSH environment"
+    else
+        write_log 1 "SSH environment was removed"
+    fi
 
     write_log 3 "Downloading OpenSSH ${openssh_version} . . . "
     if ! sudo wget -P '/opt' $OPENSSH_TARBALL_URL &>/dev/null; then
@@ -226,7 +273,7 @@ function openssh_deployment(){
         write_log 1 "OpenSSH ${openssh_version} Downloaded and verified successfully"
     fi
     
-    exract $openssh_tarball_path $openssh_path
+    extract $openssh_tarball_path $openssh_path
 
     write_log 3 "Creating ${OPENSSH_INSTALLATION_DIR}"
     if ! sudo mkdir "${OPENSSH_INSTALLATION_DIR}" &>/dev/null; then
@@ -265,14 +312,51 @@ function openssh_deployment(){
             fi
         fi
     fi
+
+    if ! sudo cat /etc/passwd | grep sshd &>/dev/null; then
+        write_log 2 "User sshd does not exist"
+
+        write_log 3 "Trying to create sshd user"
+        if ! sudo useradd sshd --gid 65534 -b /run --shell /usr/sbin/nologin &>/dev/null; then
+            write_log 2 "Wasn't able to create user sshd"
+            exit 1
+        else
+            write_log 1 "User sshd was created successfully"
+        fi
+    else
+        write_log 1 "User sshd exists"
+    fi
+
+    if [[ "$BACKUP" == true ]]; then
+        for pub_key in $OPENSSH_KEYS_BKP_PATH/*.pub; do
+        local key="${pub_key%.pub}"
+            if ! sudo mv "$pub_key" "$key" "/etc/ssh" &>/dev/null; then
+                write_log 3 "$key and "$key.pub" could not be move to /etc/ssh"
+            else
+                write_log 1 "$key and "$key.pub" was move to /etc/ssh"
+            fi
+        done
+
+        if ! sudo cp $OPENSSH_KEYS_BKP_PATH/sshd_config.bak /etc/ssh; then
+            write_log 3 "could not copy ${OPENSSH_KEYS_BKP_PATH}/sshd_config into /etc/ssh"
+        else
+            write_log 1 "${OPENSSH_KEYS_BKP_PATH}/sshd_config was successfully copied into /etc/ssh"
+        fi
+
+        if ! sudo rm -rf $OPENSSH_KEYS_BKP_PATH;then
+            write_log 2 "unable to remove ${OPENSSH_KEYS_BKP_PATH}"
+        else
+            write_log 1 "${OPENSSH_KEYS_BKP_PATH} was removed"
+        fi
+    fi
 }
 
 function main(){
-    config_validation
+#    config_validation
     privileges
-    packages
-    openssl_deployment
-    openssh_deployment
-    exit 0
+#    packages
+#    openssl_deployment
+#    openssh_deployment
+#    exit 0
 }
 main

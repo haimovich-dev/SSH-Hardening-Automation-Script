@@ -1,7 +1,7 @@
 #!/bin/bash
 
 VERBOSE=true
-BACKUP=false
+BACKUP=true
 
 PARENT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG_FILE="${PARENT_DIR}/config.conf"
@@ -84,9 +84,26 @@ function config_validation(){
     if [[ ! -f "$CONFIG_FILE" ]]; then
         write_log 2 "FATAL: Config file not found: $CONFIG_FILE"
         exit 1
-    else
-        write_log 1 "Config file used: $CONFIG_FILE"
     fi
+    write_log 1 "Config file used: $CONFIG_FILE"
+
+    local parameters=(
+        OPENSSL_TARBALL_URL
+        OPENSSL_CHECKSUM
+        OPENSSL_INSTALLATION_DIR
+        OPENSSH_TARBALL_URL
+        OPENSSH_CHECKSUM
+        OPENSSH_INSTALLATION_DIR
+        OPENSSH_KEYS_BKP_PATH
+    )
+
+    for param in "${parameters[@]}"; do
+        if [[ -z "${!param-}" ]]; then
+            write_log 2 "FATAL: Config variable '$param' is missing or empty"
+            exit 1
+        fi
+    done
+    write_log 1 "Config file $CONFIG_FILE validated successfully"
 }
 
 # description: cleans up all the remained files from the system
@@ -241,14 +258,14 @@ function openssh_deployment(){
         backup_env
     fi
 
-    local current_version=$(ssh -V)
-    write_log 3 "Removing current SSH dependencies ${current_version}"
+    local current_version="$(ssh -V 2>&1)"
+    write_log 3 "Removing current SSH dependencies OpenSSH_${current_version}"
     for pkg in "${ssh_packages[@]}"; do
         write_log 3 "Removing ${pkg}"
         if ! sudo apt purge -y $pkg &>/dev/null; then
-            write_log 1 "$pkg Has been successfully removed"
+            write_log 2 "Unable to remove ${pkg}"
         else
-            write_log 3 "Unable to remove ${pkg}"
+            write_log 1 "$pkg Has been successfully removed"
         fi
     done
 
@@ -286,7 +303,7 @@ function openssh_deployment(){
     write_log 3 "Building OpenSSH ${openssh_version}"
     if ! (cd $openssh_path && \
             sudo "./configure" \
-            --with-ssl-dir="${OPENSSH_INSTALLATION_DIR}" \
+            --with-ssl-dir="${OPENSSL_INSTALLATION_DIR}" \
             --bindir="/bin" \
             --sbindir="/sbin" \
             --sysconfdir="/etc/ssh" \
@@ -351,12 +368,17 @@ function openssh_deployment(){
     fi
 }
 
+function services(){
+    return 0
+}
+
 function main(){
-#    config_validation
+    config_validation
     privileges
-#    packages
-#    openssl_deployment
-#    openssh_deployment
-#    exit 0
+    packages
+    openssl_deployment
+    openssh_deployment
+    services
+    exit 0
 }
 main

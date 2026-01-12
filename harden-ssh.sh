@@ -1,7 +1,8 @@
 #!/bin/bash
 
-VERBOSE=true
-BACKUP=true
+VERBOSE=false
+BACKUP=false
+PASSWORD=''
 
 PARENT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG_FILE="${PARENT_DIR}/config.conf"
@@ -40,13 +41,13 @@ function write_log(){
         local prefix=""
         case "$code" in
             1)
-                prefix="\033[0;32m[ + ]\033[0m" # success
+                prefix="\033[0;32m[ OK ]\033[0m" # success
             ;;
             2)
-                prefix="\033[0;31m[ - ]\033[0m" # fail
+                prefix="\033[0;31m[ FAIL ]\033[0m" # fail
             ;;
             3)
-                prefix="\033[0;34m[ o ]\033[0m" # wait
+                prefix="----->" # wait
             ;;
         esac
         echo -e "${prefix} ${desc}"
@@ -63,7 +64,7 @@ function extract(){
     local dst_path="$2"
 
     write_log 3 "Creating extraction path ${dst_path}"
-    if ! sudo mkdir $dst_path  &>/dev/null; then
+    if ! sudo mkdir $dst_path &>/dev/null; then
         write_log 2 "Failed to create ${dst_path}"
         exit 1
     fi
@@ -109,16 +110,22 @@ function config_validation(){
 # description: cleans up all the remained files from the system
 # return: nothing
 function cleanup(){
-    
-    #openssl
-    sudo rm -r $openssl_tarball_path &>/dev/null
-    write_log 1 "$openssl_tarball_path successfully removed"
-    sudo rm -r "${OPENSSL_INSTALLATION_DIR}" &>/dev/null
-    write_log 1 "${OPENSSL_INSTALLATION_DIR} successfully removed"
-    sudo rm -r $openssl_path &>/dev/null
-    write_log 1 "$openssl_path successfully removed"
-    sudo rm -r /etc/ssh &>/dev/null
-    sudo rm -r /lib/systemd/system/sshd-keygen@.service.d &>/dev/null
+    installation_paths=(
+        "$openssl_tarball_path"
+        "$OPENSSL_INSTALLATION_DIR"
+        "$openssl_path"
+        "$openssh_tarball_path"
+        "$OPENSSH_INSTALLATION_DIR"
+        "$openssh_path"
+    )
+
+    for path in "${installation_paths[@]}"; do
+        if ! sudo rm -rf "${path}" &>/dev/null;then
+            write_log 2 "unable to remove ${path}"
+        else
+            write_log 1 "${path} was removed"
+        fi
+    done
 }
 
 # description: checks for privilleges
@@ -134,7 +141,12 @@ function privileges(){
         exit 1
         else
             write_log 1 "Sudo package is installed"
+            if [[ -z "$PASSWORD" ]] || ! sudo -S -v <<< "$PASSWORD" &>/dev/null; then
+                write_log 2 "sudo authentication has failed [password wrong/empty]"
+            else
+                write_log 1 "sudo authentication successeded"
             fi
+        fi
     else
         write_log 1 "Current User is root"
         if ! command -v sudo &>/dev/null; then
@@ -145,6 +157,11 @@ function privileges(){
                 exit 1
             else
                 write_log 1 "sudo installed successfully"
+                if [[ -z "$PASSWORD" ]] || ! sudo -S -v <<< "$PASSWORD" &>/dev/null; then
+                    write_log 2 "sudo authentication has failed [password wrong/empty]"
+                else
+                    write_log 1 "sudo authentication successeded"
+                fi
             fi
         else
             write_log 1 "Sudo package is already installed"
@@ -227,7 +244,7 @@ function backup_env(){
     write_log 3 "Backing up current SSH keys"
 
     if ! sudo mkdir $OPENSSH_KEYS_BKP_PATH  &>/dev/null; then
-        write_log 2 "Failed to create ${dst_path}"
+        write_log 2 "Failed to create ${OPENSSH_KEYS_BKP_PATH}"
         exit 1
     fi
 
@@ -372,13 +389,27 @@ function services(){
     return 0
 }
 
+# description: main function organaizing other functions one by one
+# return: exit code (0 for success, 1 for failure)
 function main(){
     config_validation
     privileges
     packages
     openssl_deployment
     openssh_deployment
-    services
+#    services
+    cleanup
     exit 0
 }
+
+while getopts ":vbp:" opt; do
+    case "$opt" in
+        v) VERBOSE=true ;;
+        b) BACKUP=true ;;
+        p) PASSWORD="$OPTARG" ;;
+        *) echo -e "Invalid argument" && exit 1 ;;
+    esac
+done
+shift $((OPTIND - 1))
+
 main

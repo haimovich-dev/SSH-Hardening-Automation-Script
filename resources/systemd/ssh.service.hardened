@@ -1,0 +1,11 @@
+[Unit]
+Description=OpenSSH Daemon
+
+[Service]
+ExecStartPre=/usr/sbin/sshd -t
+ExecStart=/usr/sbin/sshd
+PIDFile=/run/sshd.pid
+
+[Install]
+WantedBy=multi-user.target
+Alias=sshd.service
